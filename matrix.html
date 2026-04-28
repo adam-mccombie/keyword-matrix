@@ -416,8 +416,10 @@ function pc(p) {
   return pillarMap[p];
 }
 
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
 // ─── CONFIG — paste your Apps Script URL here after deploying ────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuFRayEgBP9M3cVlIFWkCfSSDc8DQPW2zjsOaSf-mcuXrnIs7Ed-zIQZuj05r1coiFOw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwsNHUA1GkN8IFUC2IwvUoBhC7247EpvUAXBFhMQFf5vqZ5DFX5xHKJNMJWOnAENZrY2w/exec';
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let pages = [];
@@ -425,28 +427,44 @@ let nextId = 1, editId = null, currentView = 'location';
 let isLoading = false;
 
 // ─── API LAYER ───────────────────────────────────────────────────────────────
-// Apps Script redirects POST requests — we must follow redirects and avoid
-// triggering CORS preflights by using form-encoded bodies (not JSON).
+// Uses a JSONP-style callback for GET (avoids CORS entirely) and
+// no-cors fetch for writes (fire-and-forget, Sheet confirms via GET on reload).
 
-async function apiGet() {
-  const res = await fetch(SCRIPT_URL + '?action=get', { redirect: 'follow' });
-  const text = await res.text();
-  const data = JSON.parse(text);
-  if (data.error) throw new Error(data.error);
-  return data.pages || [];
+function apiGet() {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb_' + Date.now();
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      delete window[cb];
+      document.body.removeChild(script);
+      reject(new Error('Request timed out — check your Apps Script URL and deployment'));
+    }, 10000);
+    window[cb] = function(data) {
+      clearTimeout(timeout);
+      delete window[cb];
+      document.body.removeChild(script);
+      if (data.error) reject(new Error(data.error));
+      else resolve(data.pages || []);
+    };
+    script.src = SCRIPT_URL + '?callback=' + cb;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cb];
+      reject(new Error('Script load failed — check your Apps Script URL'));
+    };
+    document.body.appendChild(script);
+  });
 }
 
 async function scriptPost(payload) {
-  const body = new URLSearchParams({ data: JSON.stringify(payload) });
-  const res = await fetch(SCRIPT_URL, {
+  // no-cors means we can't read the response, but the write still happens.
+  // We reload data after a short delay to confirm.
+  await fetch(SCRIPT_URL, {
     method: 'POST',
-    redirect: 'follow',
-    body,
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload),
   });
-  const text = await res.text();
-  const data = JSON.parse(text);
-  if (data.error) throw new Error(data.error);
-  return data;
 }
 
 async function apiSave(page) { return scriptPost({ action: 'save', page }); }
@@ -491,7 +509,7 @@ function showToast(msg, isError = false) {
 
 // ─── LOAD DATA FROM SHEET ─────────────────────────────────────────────────────
 async function loadData() {
-  if (SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbxuFRayEgBP9M3cVlIFWkCfSSDc8DQPW2zjsOaSf-mcuXrnIs7Ed-zIQZuj05r1coiFOw/exec') {
+  if (!SCRIPT_URL || SCRIPT_URL === '' || SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
     // No URL configured — show setup prompt
     showSetupBanner();
     return;
@@ -516,7 +534,7 @@ function showSetupBanner() {
     <div style="font-size:40px;margin-bottom:16px">🔗</div>
     <h3 style="font-family:var(--serif);font-size:26px;margin-bottom:10px">Connect Google Sheets</h3>
     <p style="font-size:14px;color:var(--text-soft);line-height:1.6;margin-bottom:20px">
-      Open this HTML file in a text editor, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">https://script.google.com/macros/s/AKfycbxuFRayEgBP9M3cVlIFWkCfSSDc8DQPW2zjsOaSf-mcuXrnIs7Ed-zIQZuj05r1coiFOw/exec</code> near the top of the script, and replace it with your deployed Apps Script URL.
+      Open this HTML file in a text editor, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">https://script.google.com/macros/s/AKfycbwsNHUA1GkN8IFUC2IwvUoBhC7247EpvUAXBFhMQFf5vqZ5DFX5xHKJNMJWOnAENZrY2w/exec</code> near the top of the script, and replace it with your deployed Apps Script URL.
     </p>
     <p style="font-size:13px;color:var(--text-soft)">See the setup instructions document for the full walkthrough.</p>
   </div>`;
@@ -785,11 +803,15 @@ async function saveEntry(){
   if(editId) pages=pages.map(p=>p.id===editId?obj:p);
   else pages.push(obj);
   refreshCurrentView();
-  // Persist to sheet
+  // Persist to sheet then reload to confirm
   setLoading(true, editId ? 'Saving…' : 'Adding page…');
   try {
     await apiSave(obj);
-    showToast(editId ? 'Page updated' : 'Page added');
+    await delay(1200);
+    pages = await apiGet();
+    nextId = Math.max(...pages.map(p=>Number(p.id)||0)) + 1;
+    refreshCurrentView();
+    showToast(editId ? 'Page updated ✓' : 'Page added ✓');
   } catch(err) {
     showToast('Save failed: ' + err.message, true);
   } finally {
@@ -804,10 +826,13 @@ async function delEntry(id){
     setLoading(true, 'Deleting…');
     try {
       await apiDelete(id);
-      showToast('Page deleted');
+      await delay(1200);
+      pages = await apiGet();
+      nextId = pages.length > 0 ? Math.max(...pages.map(p=>Number(p.id)||0)) + 1 : 1;
+      refreshCurrentView();
+      showToast('Page deleted ✓');
     } catch(err) {
       showToast('Delete failed: ' + err.message, true);
-      await loadData(); // re-sync on failure
     } finally {
       setLoading(false);
     }
@@ -833,7 +858,7 @@ function triggerImport(){ document.getElementById('csv-input').click(); }
 function importCSV(event) {
   const file = event.target.files[0]; if(!file)return;
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     const text = e.target.result;
     const lines = text.split(/\r?\n/).filter(l=>l.trim());
     if(lines.length < 2) { alert('CSV appears empty.'); return; }
@@ -870,13 +895,17 @@ function importCSV(event) {
     pages = [...map.values()];
     event.target.value = '';
     refreshCurrentView();
-    // Persist full dataset
+    // Persist full dataset then reload
     setLoading(true, `Importing ${imported.length} pages to Google Sheets…`);
     try {
       await apiImport(pages);
-      showToast(`Imported ${imported.length} page(s) to Google Sheets`);
+      await delay(1500);
+      pages = await apiGet();
+      nextId = pages.length > 0 ? Math.max(...pages.map(p=>Number(p.id)||0)) + 1 : 1;
+      refreshCurrentView();
+      showToast(`Imported ${imported.length} page(s) ✓`);
     } catch(err) {
-      showToast('Import to Sheets failed: ' + err.message, true);
+      showToast('Import failed: ' + err.message, true);
     } finally {
       setLoading(false);
     }
