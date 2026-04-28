@@ -509,7 +509,7 @@ function showToast(msg, isError = false) {
 
 // ─── LOAD DATA FROM SHEET ─────────────────────────────────────────────────────
 async function loadData() {
-  if (SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwsNHUA1GkN8IFUC2IwvUoBhC7247EpvUAXBFhMQFf5vqZ5DFX5xHKJNMJWOnAENZrY2w/exec') {
+  if (!SCRIPT_URL || SCRIPT_URL === '') {
     // No URL configured — show setup prompt
     showSetupBanner();
     return;
