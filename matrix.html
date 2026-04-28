@@ -430,35 +430,16 @@ let isLoading = false;
 // Uses a JSONP-style callback for GET (avoids CORS entirely) and
 // no-cors fetch for writes (fire-and-forget, Sheet confirms via GET on reload).
 
-function apiGet() {
-  return new Promise((resolve, reject) => {
-    const cb = 'cb_' + Date.now();
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => {
-      delete window[cb];
-      document.body.removeChild(script);
-      reject(new Error('Request timed out — check your Apps Script URL and deployment'));
-    }, 10000);
-    window[cb] = function(data) {
-      clearTimeout(timeout);
-      delete window[cb];
-      document.body.removeChild(script);
-      if (data.error) reject(new Error(data.error));
-      else resolve(data.pages || []);
-    };
-    script.src = SCRIPT_URL + '?callback=' + cb;
-    script.onerror = () => {
-      clearTimeout(timeout);
-      delete window[cb];
-      reject(new Error('Script load failed — check your Apps Script URL'));
-    };
-    document.body.appendChild(script);
-  });
+async function apiGet() {
+  // Apps Script returns plain JSON on GET — simple fetch works fine
+  const res = await fetch(SCRIPT_URL + '?v=' + Date.now());
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.pages || [];
 }
 
 async function scriptPost(payload) {
-  // no-cors means we can't read the response, but the write still happens.
-  // We reload data after a short delay to confirm.
+  // POST with text/plain avoids CORS preflight; Apps Script reads postData.contents
   await fetch(SCRIPT_URL, {
     method: 'POST',
     mode: 'no-cors',
