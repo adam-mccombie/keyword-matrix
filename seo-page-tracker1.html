@@ -417,7 +417,7 @@ function pc(p) {
 }
 
 // ─── CONFIG — paste your Apps Script URL here after deploying ────────────────
-const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuFRayEgBP9M3cVlIFWkCfSSDc8DQPW2zjsOaSf-mcuXrnIs7Ed-zIQZuj05r1coiFOw/exec';
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let pages = [];
@@ -491,7 +491,7 @@ function showToast(msg, isError = false) {
 
 // ─── LOAD DATA FROM SHEET ─────────────────────────────────────────────────────
 async function loadData() {
-  if (SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+  if (SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbxuFRayEgBP9M3cVlIFWkCfSSDc8DQPW2zjsOaSf-mcuXrnIs7Ed-zIQZuj05r1coiFOw/exec') {
     // No URL configured — show setup prompt
     showSetupBanner();
     return;
@@ -516,7 +516,7 @@ function showSetupBanner() {
     <div style="font-size:40px;margin-bottom:16px">🔗</div>
     <h3 style="font-family:var(--serif);font-size:26px;margin-bottom:10px">Connect Google Sheets</h3>
     <p style="font-size:14px;color:var(--text-soft);line-height:1.6;margin-bottom:20px">
-      Open this HTML file in a text editor, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">YOUR_APPS_SCRIPT_URL_HERE</code> near the top of the script, and replace it with your deployed Apps Script URL.
+      Open this HTML file in a text editor, find <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">https://script.google.com/macros/s/AKfycbxuFRayEgBP9M3cVlIFWkCfSSDc8DQPW2zjsOaSf-mcuXrnIs7Ed-zIQZuj05r1coiFOw/exec</code> near the top of the script, and replace it with your deployed Apps Script URL.
     </p>
     <p style="font-size:13px;color:var(--text-soft)">See the setup instructions document for the full walkthrough.</p>
   </div>`;
