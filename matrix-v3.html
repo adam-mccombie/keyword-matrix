@@ -497,10 +497,11 @@ async function loadData() {
   }
   setLoading(true, 'Loading from Google Sheets…');
   try {
-    pages = await apiGet();
+    const fetched = await apiGet();
+    pages = fetched;
     nextId = pages.length > 0 ? Math.max(...pages.map(p => Number(p.id) || 0)) + 1 : 1;
     refreshCurrentView();
-    showToast(`Loaded ${pages.length} page${pages.length !== 1 ? 's' : ''} from Google Sheets`);
+    if (pages.length > 0) showToast(`Loaded ${pages.length} page${pages.length !== 1 ? 's' : ''} from Google Sheets`);
   } catch(err) {
     showToast('Could not load data: ' + err.message, true);
   } finally {
