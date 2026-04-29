@@ -579,48 +579,40 @@ function kwRow(kw, type, mv) {
 }
 
 
-function kwsForPage(p) {
-  return [p.pk&&p.pk.w, p.s1&&p.s1.w, p.s2&&p.s2.w].filter(Boolean).map(w=>w.toLowerCase().trim());
-}
-function containsKw(text, kw) {
-  return text.toLowerCase().includes(kw.toLowerCase().trim());
-}
-function metaSectionHTML(p) {
-  const kws = kwsForPage(p);
-  const primaryKw = (p.pk&&p.pk.w)||'';
-  let titleHtml = '';
-  if (p.seoTitle) {
-    const titlePass = primaryKw && containsKw(p.seoTitle, primaryKw);
-    const titleBadge = primaryKw ? `<span class="meta-check ${titlePass?'meta-pass':'meta-fail'}">${titlePass?'✓':'✗'} ${titlePass?'Contains focus keyword':'Missing focus keyword'}</span>` : '';
-    titleHtml = `<div class="meta-row"><div class="meta-label">SEO Title</div><div class="meta-content"><div class="meta-value">${p.seoTitle}</div>${titleBadge}</div></div>`;
-  } else {
-    titleHtml = `<div class="meta-row"><div class="meta-label">SEO Title</div><div class="meta-content"><span class="meta-empty">Not set</span></div></div>`;
-  }
-  let descHtml = '';
-  if (p.metaDesc) {
-    const kwMatches = kws.filter(kw => containsKw(p.metaDesc, kw));
-    const descPass = kwMatches.length >= 2;
-    const descBadge = kws.length > 0 ? `<span class="meta-check ${descPass?'meta-pass':'meta-fail'}">${descPass?'✓':'✗'} ${kwMatches.length} of ${Math.min(kws.length,3)} keywords present${descPass?'':' (need 2+)'}</span>` : '';
-    descHtml = `<div class="meta-row"><div class="meta-label">Meta Desc</div><div class="meta-content"><div class="meta-value">${p.metaDesc}</div>${descBadge}</div></div>`;
-  } else {
-    descHtml = `<div class="meta-row"><div class="meta-label">Meta Desc</div><div class="meta-content"><span class="meta-empty">Not set</span></div></div>`;
-  }
-  return `<div class="meta-section">${titleHtml}${descHtml}</div>`;
-}
-
 function pageCardHTML(p) {
   const mv = maxVol();
   const pInfo = pc(p.pillar);
-  const pillarHtml = p.pillar ? `<span class="pillar-pill ${pInfo.cls}">${p.pillar}</span>` : '';
-  const locHtml = p.loc ? `<span class="loc-chip">${p.loc}</span>` : '';
+  const pillarHtml = p.pillar ? '<span class="pillar-pill ' + pInfo.cls + '">' + p.pillar + '</span>' : '';
+  const locHtml = p.loc ? '<span class="loc-chip">' + p.loc + '</span>' : '';
   const prankHtml = p.pk.rank
-    ? `<div class="primary-rank"><div class="rn" style="color:${rankColor(p.pk.rank)}">#${p.pk.rank}</div><div class="rl">primary</div></div>`
+    ? '<div class="primary-rank"><div class="rn" style="color:' + rankColor(p.pk.rank) + '">#' + p.pk.rank + '</div><div class="rl">primary</div></div>'
     : '';
+
+  // Build meta section using string concatenation (avoids template literal nesting issues)
+  const primaryKw = (p.pk && p.pk.w) || '';
+  const kws = [p.pk&&p.pk.w, p.s1&&p.s1.w, p.s2&&p.s2.w].filter(Boolean);
+  let titleContent, descContent;
+  if (p.seoTitle) {
+    const pass = primaryKw && p.seoTitle.toLowerCase().includes(primaryKw.toLowerCase());
+    const badge = primaryKw ? '<span class="meta-check ' + (pass?'meta-pass':'meta-fail') + '">' + (pass?'✓ Contains focus keyword':'✗ Missing focus keyword') + '</span>' : '';
+    titleContent = '<div class="meta-value">' + p.seoTitle + '</div>' + badge;
+  } else { titleContent = '<span class="meta-empty">Not set</span>'; }
+  if (p.metaDesc) {
+    const matches = kws.filter(kw => p.metaDesc.toLowerCase().includes(kw.toLowerCase()));
+    const pass = matches.length >= 2;
+    const badge = kws.length > 0 ? '<span class="meta-check ' + (pass?'meta-pass':'meta-fail') + '">' + (pass?'✓':'✗') + ' ' + matches.length + ' of ' + Math.min(kws.length,3) + ' keywords present' + (pass?'':' (need 2+)') + '</span>' : '';
+    descContent = '<div class="meta-value">' + p.metaDesc + '</div>' + badge;
+  } else { descContent = '<span class="meta-empty">Not set</span>'; }
+  const metaHtml = '<div class="meta-section">'
+    + '<div class="meta-row"><div class="meta-label">SEO Title</div><div class="meta-content">' + titleContent + '</div></div>'
+    + '<div class="meta-row"><div class="meta-label">Meta Desc</div><div class="meta-content">' + descContent + '</div></div>'
+    + '</div>';
+
   return `<div class="page-card" id="card-${p.id}">
     <div class="card-header" onclick="toggleCard(${p.id})">
       <div class="page-info">
         <div class="page-url">${p.url}</div>
-        ${p.title?`<div class="page-note">${p.title}</div>`:''}
+        ${p.title ? '<div class="page-note">' + p.title + '</div>' : ''}
       </div>
       <div class="header-chips">${pillarHtml}${locHtml}</div>
       ${prankHtml}
@@ -639,7 +631,7 @@ function pageCardHTML(p) {
         <button class="icon-btn" onclick="editEntry(${p.id})">✏ Edit</button>
         <button class="icon-btn del" onclick="delEntry(${p.id})">✕ Delete</button>
       </div>
-      ${metaSectionHTML(p)}
+      ${metaHtml}
     </div>
   </div>`;
 }
