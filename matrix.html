@@ -221,35 +221,6 @@ select.flt:hover { border-color: var(--border2); }
   .cols2, .cols3 { grid-template-columns: 1fr; }
   .card-header { flex-wrap: wrap; }
 }
-
-/* ─── SEO META SECTION ───────────────────────────────── */
-.meta-section {
-  border-top: 1px solid var(--border);
-  padding: 14px 18px;
-  background: var(--surface2);
-  display: flex; flex-direction: column; gap: 10px;
-}
-.meta-row {
-  display: flex; align-items: flex-start; gap: 10px;
-}
-.meta-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--text-soft);
-  min-width: 110px; padding-top: 3px;
-}
-.meta-content { flex: 1; min-width: 0; }
-.meta-value {
-  font-size: 13px; color: var(--text); line-height: 1.5;
-  word-break: break-word;
-}
-.meta-empty { font-size: 12px; color: var(--text-soft); font-style: italic; }
-.meta-check {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; font-weight: 600; margin-top: 4px;
-  padding: 2px 8px; border-radius: 20px;
-}
-.meta-pass { background: var(--green-bg); color: var(--green); }
-.meta-fail { background: var(--red-bg); color: var(--red); }
 </style>
 </head>
 <body>
@@ -352,20 +323,6 @@ select.flt:hover { border-color: var(--border2); }
               <option>Pittsburgh</option>
               <option>St. Louis</option>
             </select>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="sec-head">SEO Meta</div>
-        <div class="kw-block" style="margin-top:9px">
-          <div class="field">
-            <label>SEO Page Title</label>
-            <input id="f-seo-title" type="text" placeholder="e.g. City Winery New York | Live Music & Restaurant" />
-          </div>
-          <div class="field">
-            <label>Meta Description</label>
-            <textarea id="f-meta-desc" rows="2" placeholder="e.g. Enjoy live music, award-winning wine and dining at City Winery New York…" style="font-family:var(--sans);font-size:13px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);outline:none;width:100%;resize:vertical;line-height:1.5"></textarea>
           </div>
         </div>
       </div>
@@ -614,66 +571,6 @@ function kwRow(kw, type, mv) {
   </tr>`;
 }
 
-
-function kwsForPage(p) {
-  // Collect all non-empty keyword strings for this page
-  return [p.pk.w, p.s1&&p.s1.w, p.s2&&p.s2.w].filter(Boolean).map(w=>w.toLowerCase().trim());
-}
-
-function containsKw(text, kw) {
-  return text.toLowerCase().includes(kw.toLowerCase().trim());
-}
-
-function metaSectionHTML(p) {
-  const kws = kwsForPage(p);
-  const primaryKw = p.pk.w || '';
-
-  // SEO Title check: must contain the primary keyword
-  let titleHtml = '';
-  if (p.seoTitle) {
-    const titlePass = primaryKw && containsKw(p.seoTitle, primaryKw);
-    const titleBadge = primaryKw
-      ? `<span class="meta-check ${titlePass ? 'meta-pass' : 'meta-fail'}">${titlePass ? '✓' : '✗'} ${titlePass ? 'Contains focus keyword' : 'Missing focus keyword'}</span>`
-      : '';
-    titleHtml = `<div class="meta-row">
-      <div class="meta-label">SEO Title</div>
-      <div class="meta-content">
-        <div class="meta-value">${p.seoTitle}</div>
-        ${titleBadge}
-      </div>
-    </div>`;
-  } else {
-    titleHtml = `<div class="meta-row">
-      <div class="meta-label">SEO Title</div>
-      <div class="meta-content"><span class="meta-empty">Not set</span></div>
-    </div>`;
-  }
-
-  // Meta description check: must contain at least 2 of the 3 keywords
-  let descHtml = '';
-  if (p.metaDesc) {
-    const kwMatches = kws.filter(kw => containsKw(p.metaDesc, kw));
-    const descPass = kwMatches.length >= 2;
-    const descBadge = kws.length > 0
-      ? `<span class="meta-check ${descPass ? 'meta-pass' : 'meta-fail'}">${descPass ? '✓' : '✗'} ${kwMatches.length} of ${Math.min(kws.length,3)} keywords present${descPass ? '' : ' (need 2+)'}</span>`
-      : '';
-    descHtml = `<div class="meta-row">
-      <div class="meta-label">Meta Desc</div>
-      <div class="meta-content">
-        <div class="meta-value">${p.metaDesc}</div>
-        ${descBadge}
-      </div>
-    </div>`;
-  } else {
-    descHtml = `<div class="meta-row">
-      <div class="meta-label">Meta Desc</div>
-      <div class="meta-content"><span class="meta-empty">Not set</span></div>
-    </div>`;
-  }
-
-  return `<div class="meta-section">${titleHtml}${descHtml}</div>`;
-}
-
 function pageCardHTML(p) {
   const mv = maxVol();
   const pInfo = pc(p.pillar);
@@ -705,7 +602,6 @@ function pageCardHTML(p) {
         <button class="icon-btn" onclick="editEntry(${p.id})">✏ Edit</button>
         <button class="icon-btn del" onclick="delEntry(${p.id})">✕ Delete</button>
       </div>
-      ${metaSectionHTML(p)}
     </div>
   </div>`;
 }
@@ -859,7 +755,7 @@ function openAdd() {
   editId = null;
   document.getElementById('m-title').textContent = 'Add Page';
   document.getElementById('m-sub').textContent = 'Enter the page URL and its target keywords.';
-  ['f-url','f-title','f-seo-title','f-meta-desc','pk-word','pk-vol','pk-rank','s1-word','s1-vol','s1-rank','s2-word','s2-vol','s2-rank'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-url','f-title','pk-word','pk-vol','pk-rank','s1-word','s1-vol','s1-rank','s2-word','s2-vol','s2-rank'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['f-pillar-sel','f-loc-sel','pk-diff','s1-diff','s2-diff'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('overlay').classList.add('open');
 }
@@ -874,8 +770,6 @@ function editEntry(id) {
   document.getElementById('f-pillar-sel').value=p.pillar||'';
   document.getElementById('f-loc-sel').value=p.loc||'';
   const sv=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val!=null?val:'';};
-  sv('f-seo-title', p.seoTitle||'');
-  sv('f-meta-desc', p.metaDesc||'');
   sv('pk-word',p.pk.w);sv('pk-vol',p.pk.vol);sv('pk-rank',p.pk.rank);sv('pk-diff',p.pk.diff||'');
   sv('s1-word',p.s1&&p.s1.w||'');sv('s1-vol',p.s1&&p.s1.vol);sv('s1-rank',p.s1&&p.s1.rank);sv('s1-diff',p.s1&&p.s1.diff||'');
   sv('s2-word',p.s2&&p.s2.w||'');sv('s2-vol',p.s2&&p.s2.vol);sv('s2-rank',p.s2&&p.s2.rank);sv('s2-diff',p.s2&&p.s2.diff||'');
@@ -900,8 +794,6 @@ async function saveEntry(){
     id: editId || nextId++,
     url,
     title:document.getElementById('f-title').value.trim(),
-    seoTitle:document.getElementById('f-seo-title').value.trim(),
-    metaDesc:document.getElementById('f-meta-desc').value.trim(),
     pillar:document.getElementById('f-pillar-sel').value,
     loc:document.getElementById('f-loc-sel').value,
     pk:readKw('pk'),s1:readKw('s1'),s2:readKw('s2'),
@@ -949,9 +841,9 @@ async function delEntry(id){
 
 // ─── CSV EXPORT ───────────────────────────────────────────────────────────────
 function exportCSV(){
-  const hdrs=['Page URL','Title','SEO Title','Meta Description','Pillar','Location','Primary KW','Primary Vol','Primary Rank','Primary Diff','Sec1 KW','Sec1 Vol','Sec1 Rank','Sec1 Diff','Sec2 KW','Sec2 Vol','Sec2 Rank','Sec2 Diff'];
+  const hdrs=['Page URL','Title','Pillar','Location','Primary KW','Primary Vol','Primary Rank','Primary Diff','Sec1 KW','Sec1 Vol','Sec1 Rank','Sec1 Diff','Sec2 KW','Sec2 Vol','Sec2 Rank','Sec2 Diff'];
   const rows=pages.map(p=>[
-    p.url,p.title||'',p.seoTitle||'',p.metaDesc||'',p.pillar||'',p.loc||'',
+    p.url,p.title||'',p.pillar||'',p.loc||'',
     p.pk.w,p.pk.vol||'',p.pk.rank||'',p.pk.diff||'',
     p.s1&&p.s1.w||'',p.s1&&p.s1.vol||'',p.s1&&p.s1.rank||'',p.s1&&p.s1.diff||'',
     p.s2&&p.s2.w||'',p.s2&&p.s2.vol||'',p.s2&&p.s2.rank||'',p.s2&&p.s2.diff||''
@@ -1023,7 +915,8 @@ function importCSV(event) {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 switchPanel('location');
-loadData();
+// Small delay ensures DOM is fully ready before loading
+setTimeout(() => loadData(), 100);
 </script>
 </body>
 </html>
